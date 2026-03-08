@@ -61,10 +61,16 @@ class VolumeController:
         self._muted  = False
         if _PYCAW_OK:
             try:
+                import comtypes
+                comtypes.CoInitialize()
                 devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(
+                # Newer pycaw wraps IMMDevice in AudioDevice — use ._dev to get
+                # the raw COM object which has .Activate()
+                dev = devices._dev if hasattr(devices, '_dev') else devices
+                interface = dev.Activate(
                     IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                self._volume = interface.QueryInterface(IAudioEndpointVolume)
+                self._volume = comtypes.cast(
+                    interface, comtypes.POINTER(IAudioEndpointVolume))
             except Exception as e:
                 print(f"[Volume] Init failed: {e}")
 
